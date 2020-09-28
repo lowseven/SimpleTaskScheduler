@@ -157,7 +157,7 @@ namespace TPL.SimpleTaskScheduler
             Debug.WriteLine($"Enqueueing the new WorkItem {workItem.Id}");
         }
 
-        public bool TryExecuteWorkNow(
+        public bool TryExecuteItNow(
             Action doWork
             , TaskCreationOptions creationOptions = TaskCreationOptions.None
             , int secsBeforeCanceling = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS) => TryExecuteWorkNow(doWork, null);
@@ -168,11 +168,11 @@ namespace TPL.SimpleTaskScheduler
             , TaskCreationOptions creationOptions = TaskCreationOptions.None
             , int secsBeforeCanceling = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS)
         {
-            var workItem = doWorkCallback is null
+            var item = doWorkCallback is null
                 ? new WorkItem(doWork)
                 : new WorkItem(() => { doWork(); doWorkCallback(); });
 
-            return TryExecuteTaskInline(workItem.Task, false);
+            return TryCatchWorkItemWrapper(item);
         }
 
         protected virtual void HandleConsumeCollection()
@@ -221,19 +221,24 @@ namespace TPL.SimpleTaskScheduler
         {
             if (IsValidTask(task) is false) return false;
 
-            if (taskWasPreviouslyQueued is false)
+            if (taskWasPreviouslyQueued)
             {
-                TryCatchTaskWrapper(task);
+                var workItem = _WorkItemsQueue.SingleOrDefault(i => i.Task.Equals(task));
+                if (workItem is null)
+                {
+                    if (workItem.IsValid is false) return false;
+                    return TryCatchWorkItemWrapper(workItem);
+                }
+                else
+                {
+                    //it was called by using this scheduler
+                    return TryCatchTaskWrapper(task);
+                }
             }
             else
             {
-                var workItem = _WorkItemsQueue.SingleOrDefault(i => i.Id.Equals(task.Id));
-                if (workItem is null || workItem.IsValid) return false;
-
-                TryCatchWorkItemWrapper(workItem);
+                return TryCatchTaskWrapper(task);
             }
-
-            return true;
         }
 
         /// <summary>
@@ -261,12 +266,14 @@ namespace TPL.SimpleTaskScheduler
         /// A Try-catch wrapper used to run 'safetly' the task and get logs in case of failure
         /// </summary>
         /// <param name="task"></param>
-        protected virtual void TryCatchTaskWrapper(Task task)
+        protected virtual bool TryCatchTaskWrapper(Task task)
         {
+            var result = false;
             try
             {
                 task.ConfigureAwait(false);
                 TryExecuteTask(task);
+                result = true;
             }
             catch (InvalidOperationException ex)
             {
@@ -300,6 +307,8 @@ namespace TPL.SimpleTaskScheduler
             {
                 task.Dispose();
             }
+
+            return result;
         }
 
         /// <summary>
@@ -308,10 +317,12 @@ namespace TPL.SimpleTaskScheduler
         /// <param name="task"></param>
         protected virtual bool TryCatchWorkItemWrapper(IWorkItem workItem)
         {
-            var result = true;
+            var result = false;
             try
             {
                 workItem.DoWork();
+                workItem.SetCompletion(null);
+                result = true;
             }
             catch (OperationCanceledException ex)
             {
@@ -321,7 +332,6 @@ namespace TPL.SimpleTaskScheduler
                     workItem.SetCanceled();
                     //TODO: log in  log table
                     Debug.WriteLine($"OnCancellationRequest exception for WorkItem {workItem.Id}");
-
                 }
                 else
                 {
@@ -329,7 +339,6 @@ namespace TPL.SimpleTaskScheduler
                     //TODO: log in  log table
                     Debug.WriteLine($"OnOperationCanceledException exception for WorkItem {workItem.Id}");
                 }
-                result = false;
             }
             catch (Exception ex)
             {
@@ -337,7 +346,6 @@ namespace TPL.SimpleTaskScheduler
                 //TODO: log in  log table
 
                 Debug.WriteLine($"OnGeneric exception for WorkItem {workItem.Id}");
-                result = false;
             }
             finally
             {

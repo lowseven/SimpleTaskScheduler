@@ -20,7 +20,7 @@ namespace TPL.Interfaces
         /// <param name="doWorkCallback">The optional method called after WorkItem completes its work</param>
         /// <param name="creationOptions">The optional creation options of the workItem</param>
         /// <param name="secsBeforeCanceling">The workitem timeout to complete the workItem</param>
-        void EnqueueWork(Func<TData> doWork, Action<TData> doWorkCallback = null, TaskCreationOptions creationOptions = TaskCreationOptions.None, int secsBeforeCanceling = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS);
+        void EnqueueWork(Func<TData> doWork, Action<TData> doWorkCallback, TaskCreationOptions creationOptions = TaskCreationOptions.None, int secsBeforeCanceling = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS);
         /// <summary>
         /// Determines whether the provided doWorkCallback can be executed 
         /// in this call, and if so, executes it.
@@ -62,7 +62,7 @@ namespace TPL.Interfaces
         /// <param name="doWorkCallback">The work result callback. The workitem state will be passed in the argument</param>
         /// <param name="creationOptions">The optional creation options of the workItem</param>
         /// <param name="secsBeforeCanceling">The workitem timeout to complete the workItem</param>
-        void EnqueueWork(Action doWork, Action doWorkCallback = null, TaskCreationOptions creationOptions = TaskCreationOptions.None, int secsBeforeCanceling = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS);
+        void EnqueueWork(Action doWork, Action doWorkCallback, TaskCreationOptions creationOptions = TaskCreationOptions.None, int secsBeforeCanceling = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS);
         /// <summary>
         /// Determines whether the provided doWorkCallback can be executed 
         /// in this call, and if so, executes it.
@@ -70,7 +70,7 @@ namespace TPL.Interfaces
         /// <param name="creationOptions">The optional creation options of the workItem</param>
         /// <param name="secsBeforeCanceling">The workitem timeout to complete the workItem</param>
         /// </summary>
-        bool TryExecuteWorkNow(Action doWork, TaskCreationOptions creationOptions = TaskCreationOptions.None, int secsBeforeCanceling = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS);
+        bool TryExecuteItNow(Action doWork, TaskCreationOptions creationOptions = TaskCreationOptions.None, int secsBeforeCanceling = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS);
         /// <summary>
         /// Determines whether the provided doWorkCallback can be executed 
         /// in this call, and if so, executes it.

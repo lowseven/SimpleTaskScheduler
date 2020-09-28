@@ -3,7 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30011.22
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TPL.SimpleTaskScheduler", "TPL.SimpleTaskScheduler\TPL.SimpleTaskScheduler.csproj", "{1A77B52E-4866-49B8-AF8E-3EEE1B2E6E3A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TPL.SimpleTaskScheduler", "src\TPL.SimpleTaskScheduler\TPL.SimpleTaskScheduler.csproj", "{1A77B52E-4866-49B8-AF8E-3EEE1B2E6E3A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{45B63063-DD15-4A38-B7AE-94BA5C07793B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{1C26F5A3-AB77-4E50-9851-6AB74D45649A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TPL.SimpleTaskSchedulerTest", "test\TPL.SimpleTaskSchedulerTest\TPL.SimpleTaskSchedulerTest.csproj", "{0DCD5731-5AE2-407C-91A0-438CCF358F5A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,9 +21,17 @@ Global
 		{1A77B52E-4866-49B8-AF8E-3EEE1B2E6E3A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1A77B52E-4866-49B8-AF8E-3EEE1B2E6E3A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1A77B52E-4866-49B8-AF8E-3EEE1B2E6E3A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DCD5731-5AE2-407C-91A0-438CCF358F5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DCD5731-5AE2-407C-91A0-438CCF358F5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DCD5731-5AE2-407C-91A0-438CCF358F5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DCD5731-5AE2-407C-91A0-438CCF358F5A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{1A77B52E-4866-49B8-AF8E-3EEE1B2E6E3A} = {45B63063-DD15-4A38-B7AE-94BA5C07793B}
+		{0DCD5731-5AE2-407C-91A0-438CCF358F5A} = {1C26F5A3-AB77-4E50-9851-6AB74D45649A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {11DD215E-4A04-4150-B3DC-14868493C44B}
