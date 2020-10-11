@@ -24,13 +24,24 @@ namespace TPL.Interfaces
         /// <param name="dueTime">The workitem timeout to complete the workItem</param>
         void EnqueueWork(Func<TData> doWork, Action<TData> doWorkCallback, TaskCreationOptions creationOptions = TaskCreationOptions.None, int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS);
         /// <summary>
+        /// Queueing a WorItem into the scheduler
+        /// </summary>
+        /// <param name="work">the work to be executed</param>
+        void EnqueueWork(IWorkItem<TData> workItem);
+        /// <summary>
+        /// Determines whether the provided doWorkCallback can be executed 
+        /// in this call, and if so, executes it.
+        /// <param name="work">The work to be executed</param>
+        /// </summary>
+        bool TryExecuteItNow(IWorkItem<TData> workItem);
+        /// <summary>
         /// Determines whether the provided doWorkCallback can be executed 
         /// in this call, and if so, executes it.
         /// <param name="doWork">The work to be executed</param>
         /// <param name="creationOptions">The optional creation options of the workItem</param>
         /// <param name="dueTime">The workitem timeout to complete the workItem</param>
         /// </summary>
-        bool TryExecuteWorkNow(Func<TData> doWork, TaskCreationOptions creationOptions = TaskCreationOptions.None, int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS);
+        bool TryExecuteItNow(Func<TData> doWork, TaskCreationOptions creationOptions = TaskCreationOptions.None, int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS);
         /// <summary>
         /// Determines whether the provided doWorkCallback can be executed 
         /// in this call, and if so, executes it.
@@ -39,7 +50,9 @@ namespace TPL.Interfaces
         /// <param name="creationOptions">The optional creation options of the workItem</param>
         /// <param name="dueTime">The workitem timeout to complete the workItem</param>
         /// </summary>
-        bool TryExecuteWorkNow(Func<TData> doWork, Action<TData> doWorkCallback = null, TaskCreationOptions creationOptions = TaskCreationOptions.None, int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS);
+        bool TryExecuteItNow(Func<TData> doWork, Action<TData> doWorkCallback = null, TaskCreationOptions creationOptions = TaskCreationOptions.None, int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS);
+
+
     }
 
     public interface ITaskScheduler : IDisposable

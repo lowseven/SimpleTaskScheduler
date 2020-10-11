@@ -8,9 +8,9 @@ namespace TPL.Interfaces
     public interface IWorkItem<TData> : IWorkItem where TData : class
     {
         /// <summary>
-        /// Returns a Task with its result
+        /// Returns the result with its result
         /// </summary>
-        new Task<TData> Task { get; }
+        TData Result { get; }
     }
 
     public interface IWorkItem : IAwaitable<IWorkItem>, IDisposable

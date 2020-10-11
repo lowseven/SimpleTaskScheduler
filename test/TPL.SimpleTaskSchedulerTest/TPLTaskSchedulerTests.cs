@@ -1,4 +1,6 @@
 ﻿using FluentAssertions;
+using Moq;
+using Serilog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TPL.Interfaces;
 using TPL.SimpleTaskScheduler;
+using TPL.SimpleTaskSchedulerTest.Fakes;
 using Xunit;
 
 namespace TPL.SimpleTaskSchedulerTest
@@ -36,9 +39,9 @@ namespace TPL.SimpleTaskSchedulerTest
                 , CancellationToken.None
                 , TaskCreationOptions.None
                 , sch);
-            while (counter == 0) { }
 
             //ASSERT
+            Thread.Sleep(2 * 1000);
             counter.Should().BeGreaterThan(0);
         }
 
@@ -60,7 +63,7 @@ namespace TPL.SimpleTaskSchedulerTest
         public void TPLTaskSchedulerOnInit_Without_Passing_Any_Argument_It_Should_Init_With_DefaultValues()
         {
             //ACT, ASSERT
-            sch.MaximumConcurrencyLevel.Should().Be(TPLConstants.TPL_SCHEDULER_MIN_THREAD_COUNT);
+            sch.MaximumConcurrencyLevel.Should().Be(TPLConstants.TPL_SCHEDULER_MIN_CONS_COUNT);
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
@@ -68,7 +71,7 @@ namespace TPL.SimpleTaskSchedulerTest
         {
             //ARRANGE
             var threadCount = 0;
-            Action action = () => new TPLTaskScheduler(taskDueTime: threadCount);
+            Action action = () => new TPLTaskScheduler(consumersCount: threadCount);
 
             //ACT, ASSERT
             action.Should().Throw<ArgumentOutOfRangeException>();
@@ -86,6 +89,21 @@ namespace TPL.SimpleTaskSchedulerTest
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
+        public void TPLTaskSchedulerOnInit_When_CannotAddItems_It_Should_Throw_InvalidOperationException()
+        {
+            //ARRANGE
+            var loggerMock = new Mock<ILogger>();
+            var workMock = new Mock<IWorkItem>();
+            var expectedError = Guid.NewGuid().ToString();
+            var consCount = 5;
+            var schedulerFake = new TPLTaskSchedulerCannotAddWorkItemsFake(loggerMock.Object, consumersCount: consCount);
+            Action action = () => schedulerFake.EnqueueWork(workMock.Object);
+
+            //ACT, ASSERT
+            action.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void EnqueuedWorkItems_It_Should_Return_The_Pending_WorkItemList()
         {
             //ARRANGE
@@ -100,11 +118,8 @@ namespace TPL.SimpleTaskSchedulerTest
 
             sch.EnqueueWork(items);
 
-            //ACT
-            var res = sch.EnqueuedWorkItems;
-            while (counter != items.Count()) { }
-
-            //ASSERT
+            //ACT, ASSERT
+            Thread.Sleep(2 * 1000);
             counter.Should().Be(items.Count());
         }
 
@@ -126,7 +141,7 @@ namespace TPL.SimpleTaskSchedulerTest
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void AllTasksCompleted_With_An_Empty_Queue_It_Should_TrulyValue()
+        public void AllTasksCompleted_With_An_Empty_Queue_It_Should_Return_TrulyValue()
         {
             //ARRANGE
             var items = new WorkItem[]
@@ -167,7 +182,7 @@ namespace TPL.SimpleTaskSchedulerTest
         public void EnqueueWork_OnMaxItemQueue_reached_It_Should_Throw_InvalidOperationException()
         {
             //ARRANGE
-            var schTemp = new TPLTaskScheduler(threadsCount: 1, maxQueueItems: 1);
+            var schTemp = new TPLTaskScheduler(consumersCount: 1, maxQueueItems: 1);
             var items = new WorkItem[]
             {
                   new WorkItem(() => { Thread.Sleep(2*1000); })
@@ -180,7 +195,7 @@ namespace TPL.SimpleTaskSchedulerTest
 
             //ACT,ASSERT
             action.Should().Throw<InvalidOperationException>();
-            
+
             schTemp.Dispose();
             schTemp = null;
         }
@@ -225,10 +240,8 @@ namespace TPL.SimpleTaskSchedulerTest
             var updateMe = string.Empty;
             sch.EnqueueWork(() => { updateMe = Guid.NewGuid().ToString(); });
 
-            //ACT
-            while (string.IsNullOrWhiteSpace(updateMe)) { };
-
-            //ASSERT
+            //ACT, ASSERT
+            Thread.Sleep(2 * 1000);
             updateMe.Should().NotBeNullOrEmpty();
         }
 
@@ -250,10 +263,8 @@ namespace TPL.SimpleTaskSchedulerTest
             var counter = 0;
             sch.EnqueueWork(() => { counter++; }, () => { counter++; });
 
-            //ACT
-            while (counter <= 1) { }
-
-            //ASSERT
+            //ACT, ASSERT
+            Thread.Sleep(2 * 1000);
             counter.Should().BeGreaterOrEqualTo(2);
         }
 
@@ -291,10 +302,8 @@ namespace TPL.SimpleTaskSchedulerTest
             var updateMe = 0;
             sch.EnqueueWork(() => { updateMe++; }, () => { updateMe++; });
 
-            //ACT
-            while (updateMe < 2) { };
-
-            //ASSERT
+            //ACT, ASSERT
+            Thread.Sleep(2 * 1000);
             updateMe.Should().BeGreaterOrEqualTo(2);
         }
 
@@ -305,6 +314,17 @@ namespace TPL.SimpleTaskSchedulerTest
 
             Action doWork = null;
             Action action = () => sch.EnqueueWork(doWork, () => { /* do nothing */ });
+
+            //ACT,ASSERT
+            action.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
+        public void EnqueueWork_Passing_A_NullWorkItemByArgument_It_Should_Throw_ArgumentNulleException()
+        {
+            //ARRANGE
+            WorkItem work = null;
+            Action action = () => sch.EnqueueWork(work);
 
             //ACT,ASSERT
             action.Should().Throw<ArgumentNullException>();
@@ -348,10 +368,8 @@ namespace TPL.SimpleTaskSchedulerTest
             var work = new WorkItem(() => { updateMe++; });
             sch.EnqueueWork(work);
 
-            //ACT
-            while (updateMe == 1) { };
-
-            //ASSERT
+            //ACT, ASSERT
+            Thread.Sleep(2 * 1000);
             updateMe.Should().BeGreaterOrEqualTo(0);
         }
 
@@ -470,7 +488,7 @@ namespace TPL.SimpleTaskSchedulerTest
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void TryExecuteWorkNowWithDoWorkCallback_When_WorkCallback_IsNull_It_Should_Throw_ArgumentNullException()
+        public void TryExecuteItNowWithDoWorkCallback_When_WorkCallback_IsNull_It_Should_Throw_ArgumentNullException()
         {
             //ARRANGE
 
@@ -482,22 +500,20 @@ namespace TPL.SimpleTaskSchedulerTest
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void TryExecuteWorkNowWithDoWorkCallback_It_Should_Call_The_DoWorkCallback()
+        public void TryExecuteItNowWithDoWorkCallback_It_Should_Call_The_DoWorkCallback()
         {
             //ARRANGE
 
             var counter = 0;
             sch.TryExecuteItNow(() => { counter++; }, () => { counter++; });
 
-            //ACT
-            while (counter < 1) { }
-
-            //ASSERT
+            //ACT, ASSERT
+            Thread.Sleep(2 * 1000);
             counter.Should().BeGreaterOrEqualTo(2);
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void TryExecuteWorkNowWithDoWorkCallback_When_DueTime_IsLessOrEqualToZero_It_Should_Throw_ArgumentOutOfRangeException()
+        public void TryExecuteItNowWithDoWorkCallback_When_DueTime_IsLessOrEqualToZero_It_Should_Throw_ArgumentOutOfRangeException()
         {
             //ARRANGE
 
@@ -508,7 +524,7 @@ namespace TPL.SimpleTaskSchedulerTest
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void TryExecuteWorkNowWithDoWorkCallback_When_TaskSchedulerDisposed_It_Should_Throw_ObjectDisposedException()
+        public void TryExecuteItNowWithDoWorkCallback_When_TaskSchedulerDisposed_It_Should_Throw_ObjectDisposedException()
         {
             //ARRANGE
 
@@ -517,12 +533,12 @@ namespace TPL.SimpleTaskSchedulerTest
             //ACT,ASSERT
             sch.Dispose();
             action.Should().Throw<ObjectDisposedException>();
-            
+
             RefreshSchedulerInstance();
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void TryExecuteWorkNowWithDoWorkCallback_It_Should_Do_The_Work()
+        public void TryExecuteItNowWithDoWorkCallback_It_Should_Do_The_Work()
         {
             //ARRANGE
 

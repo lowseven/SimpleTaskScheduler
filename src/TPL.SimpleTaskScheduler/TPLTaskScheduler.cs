@@ -15,9 +15,20 @@ namespace TPL.SimpleTaskScheduler
         public override int MaximumConcurrencyLevel => _ThreadsCount;
 
         public TPLTaskScheduler(
-              int threadsCount = TPLConstants.TPL_SCHEDULER_MIN_THREAD_COUNT
-            , int waitUntilCancelWorkItem = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS)
-            : base(threadsCount, waitUntilCancelWorkItem)
+              int consumersCount = TPLConstants.TPL_SCHEDULER_MIN_CONS_COUNT
+            , int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS
+            , int maxQueueItems = TPLConstants.TPL_SCHEDULER_MAX_QUEUE_ITEMS)
+            : base(consumersCount, dueTime, maxQueueItems)
+        {
+
+        }
+
+        public TPLTaskScheduler(
+            ILogger logger
+            , int consumersCount = TPLConstants.TPL_SCHEDULER_MIN_CONS_COUNT
+            , int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS
+            , int maxQueueItems = TPLConstants.TPL_SCHEDULER_MAX_QUEUE_ITEMS)
+            : base(logger, consumersCount, dueTime, maxQueueItems)
         {
 
         }
@@ -25,52 +36,51 @@ namespace TPL.SimpleTaskScheduler
         public void EnqueueWork(
             Func<TData> doWork
             , TaskCreationOptions creationOptions = TaskCreationOptions.None
-            , int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS)
-        {
-            if (doWork is null) throw new ArgumentNullException(nameof(doWork));
-            if (dueTime <= 0) throw new ArgumentOutOfRangeException(nameof(dueTime));
-            if (doWork.Method.ReturnType is TData is false) throw new InvalidCastException(nameof(doWork));
-
-            var item = new WorkItem<TData>(doWork, creationOptions, dueTime);
-            _WorkItemsQueue.Add(item);
-        }
+            , int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS) => EnqueueWork(doWork, null, creationOptions, dueTime);
 
         public void EnqueueWork(
             Func<TData> doWork
-            , Action<TData> doWorkCallback = null
+            , Action<TData> doWorkCallback
             , TaskCreationOptions creationOptions = TaskCreationOptions.None
             , int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS)
         {
             if (doWork is null) throw new ArgumentNullException(nameof(doWork));
             if (dueTime <= 0) throw new ArgumentOutOfRangeException(nameof(dueTime));
-            if (doWork.Method.ReturnType is TData is false) throw new InvalidCastException(nameof(doWork));
 
-            var item = new WorkItem<TData>(doWork, creationOptions, dueTime);
-            _WorkItemsQueue.Add(item);
+            var item = new WorkItem<TData>(() =>
+            {
+                var res = doWork();
+
+                if (doWorkCallback is null is false) doWorkCallback(res);
+
+                return res;
+            }, creationOptions, dueTime);
+
+            EnqueueWork(item as IWorkItem);
         }
 
-        public bool TryExecuteWorkNow(
+        public void EnqueueWork(IWorkItem<TData> workItem) => base.EnqueueWork(workItem);
+        public bool TryExecuteItNow(IWorkItem<TData> workItem) => base.TryExecuteItNow(workItem);
+
+        public bool TryExecuteItNow(
              Func<TData> doWork
             , TaskCreationOptions creationOptions = TaskCreationOptions.None
-            , int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS) => TryExecuteWorkNow(doWork, null, creationOptions, dueTime);
+            , int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS) => TryExecuteItNow(doWork, null, creationOptions, dueTime);
 
-        public bool TryExecuteWorkNow(
+        public bool TryExecuteItNow(
             Func<TData> doWork
-            , Action<TData> doWorkCallback = null
+            , Action<TData> doWorkCallback
             , TaskCreationOptions creationOptions = TaskCreationOptions.None
             , int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS)
         {
+            if (_Disposed) throw new ObjectDisposedException(nameof(TPLTaskScheduler<TData>));
             if (doWork is null) throw new ArgumentNullException(nameof(doWork));
             if (dueTime <= 0) throw new ArgumentOutOfRangeException(nameof(dueTime));
-            if (doWork.Method.ReturnType is TData is false) throw new InvalidCastException(nameof(doWork));
-
             var item = doWorkCallback is null
                ? new WorkItem<TData>(doWork)
                : new WorkItem<TData>(() => { var res = doWork(); doWorkCallback(res); return res; });
 
-            item.DoWork();
-
-            return this.TryExecuteTask(item.Task);
+            return TryExecuteItNow((IWorkItem)item);
         }
     }
 
@@ -93,18 +103,37 @@ namespace TPL.SimpleTaskScheduler
         public IEnumerable<IWorkItem> EnqueuedWorkItems => _WorkItemsQueue.AsEnumerable();
 
         public TPLTaskScheduler(
-              int threadsCount = TPLConstants.TPL_SCHEDULER_MIN_THREAD_COUNT
+            ILogger logger
+            , int consumersCount = TPLConstants.TPL_SCHEDULER_MIN_CONS_COUNT
             , int taskDueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS
             , int maxQueueItems = TPLConstants.TPL_SCHEDULER_MAX_QUEUE_ITEMS)
         {
             if (taskDueTime <= 0) throw new ArgumentOutOfRangeException(nameof(taskDueTime));
-            if (threadsCount <= 0) throw new ArgumentOutOfRangeException(nameof(threadsCount));
+            if (consumersCount <= 0) throw new ArgumentOutOfRangeException(nameof(consumersCount));
 
             _Disposed = false;
             _TaskDueTime = taskDueTime;
             _MaximumQueueItems = maxQueueItems;
             _WorkItemsQueue = new BlockingCollection<IWorkItem>();
-            _ThreadsCount = threadsCount;
+            _ThreadsCount = consumersCount;
+            _Logger = logger;
+
+            StartingUpConsumerThreads();
+        }
+
+        public TPLTaskScheduler(
+              int consumersCount = TPLConstants.TPL_SCHEDULER_MIN_CONS_COUNT
+            , int taskDueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS
+            , int maxQueueItems = TPLConstants.TPL_SCHEDULER_MAX_QUEUE_ITEMS)
+        {
+            if (taskDueTime <= 0) throw new ArgumentOutOfRangeException(nameof(taskDueTime));
+            if (consumersCount <= 0) throw new ArgumentOutOfRangeException(nameof(consumersCount));
+
+            _Disposed = false;
+            _TaskDueTime = taskDueTime;
+            _MaximumQueueItems = maxQueueItems;
+            _WorkItemsQueue = new BlockingCollection<IWorkItem>();
+            _ThreadsCount = consumersCount;
             _Logger = TPLUtils.GetLogger();
 
             StartingUpConsumerThreads();
@@ -116,18 +145,18 @@ namespace TPL.SimpleTaskScheduler
         /// </summary>
         private void StartingUpConsumerThreads()
         {
-            var ctSource = new CancellationTokenSource();
             var list = new List<Tuple<Task, CancellationTokenSource>>(_ThreadsCount);
 
             for (int i = 0; i < _ThreadsCount; i++)
             {
+                var ctSource = new CancellationTokenSource();
                 var task = new Task(() => HandleConsumeCollection(ctSource.Token), ctSource.Token);
                 task.ConfigureAwait(false);
                 task.ContinueWith((e) =>
                 {
                     if (IsValidTask(e) is false)
                     {
-                        _Logger.Debug($"{e.Exception}");
+                        _Logger.Debug($"Error from Consumer Task {e.Id} - {e.Exception}");
                     }
                     else
                     {
@@ -138,22 +167,30 @@ namespace TPL.SimpleTaskScheduler
                 list.Add(Tuple.Create(task, ctSource));
                 ctSource.Token.ThrowIfCancellationRequested();
 
-                task.Start();
+                if (IsValidTask(task))
+                {
+                    task.Start();
+
+                    _Logger.Debug($"Starting consumer Thread {task.Id}");
+                }
+                else
+                {
+                    _Logger.Debug($"Error from Consumer Task {task.Id} - {task.Exception}");
+                }
 
                 ctSource.Token.ThrowIfCancellationRequested();
-                _Logger.Debug($"Starting consumer Thread {task.Id}");
+                ctSource.Token.Register(() =>
+                {
+                    if (_Disposed is false)
+                    {
+                        _Logger.Debug($"Scheduler Consumer Tasks {task.Id} CANCELED");
+                        ctSource.Dispose();
+                    }
+
+                });
             }
 
             _ConsumerTaskList = list;
-            ctSource.Token.Register(() =>
-            {
-                if (_Disposed is false)
-                {
-                    _Logger.Debug($"Scheduler Consumer Tasks CANCELED");
-                    ctSource.Dispose();
-                }
-
-            });
         }
 
         public void Dispose() => Dispose(true);
@@ -187,7 +224,7 @@ namespace TPL.SimpleTaskScheduler
             , TaskCreationOptions creationOptions = TaskCreationOptions.None
             , int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS)
         {
-            if (CanAddWorkItem())
+            if (IsOutOfRange())
                 throw new InvalidOperationException(string.Format(TPLConstants.TPL_SCHEDULER_MAX_QUEUE_ITEMS_EX, this._MaximumQueueItems));
 
             if (doWork is null) throw new ArgumentNullException(nameof(doWork));
@@ -206,7 +243,7 @@ namespace TPL.SimpleTaskScheduler
 
         public void EnqueueWork(IWorkItem work)
         {
-            if (CanAddWorkItem())
+            if (IsOutOfRange())
                 throw new InvalidOperationException(string.Format(TPLConstants.TPL_SCHEDULER_MAX_QUEUE_ITEMS_EX, this._MaximumQueueItems));
 
             if (work is null) throw new ArgumentNullException(nameof(work));
@@ -220,7 +257,7 @@ namespace TPL.SimpleTaskScheduler
 
         public void EnqueueWork(IEnumerable<IWorkItem> works)
         {
-            if (CanAddWorkItem())
+            if (IsOutOfRange())
                 throw new InvalidOperationException(string.Format(TPLConstants.TPL_SCHEDULER_MAX_QUEUE_ITEMS_EX, this._MaximumQueueItems));
 
             if (works is null) throw new ArgumentNullException(nameof(works));
@@ -239,10 +276,13 @@ namespace TPL.SimpleTaskScheduler
         public bool TryExecuteItNow(IWorkItem work)
         {
             if (work is null) throw new ArgumentNullException(nameof(work));
+            if (IsOutOfRange())
+                throw new InvalidOperationException(string.Format(TPLConstants.TPL_SCHEDULER_MAX_QUEUE_ITEMS_EX, this._MaximumQueueItems));
+
             if (work.IsRunnable is false) return false;
 
             Func<Task> t = async () => await work;
-            t();
+            t.Invoke();
 
             return true;
         }
@@ -260,8 +300,8 @@ namespace TPL.SimpleTaskScheduler
         {
             if (_Disposed)
                 throw new ObjectDisposedException(nameof(TPLTaskScheduler));
-            
-            if (CanAddWorkItem())
+
+            if (IsOutOfRange())
                 throw new InvalidOperationException(string.Format(TPLConstants.TPL_SCHEDULER_MAX_QUEUE_ITEMS_EX, this._MaximumQueueItems));
 
             if (doWork is null) throw new ArgumentNullException(nameof(doWork));
@@ -274,11 +314,12 @@ namespace TPL.SimpleTaskScheduler
             return TryCatchWorkItemWrapper(item);
         }
 
-        protected bool CanAddWorkItem()
+        protected virtual bool IsOutOfRange()
         {
             lock (_lock)
             {
-                return _MaximumQueueItems > 0 && GetScheduledTasks().Count() <= _MaximumQueueItems;
+                var scheduledTaskCount = GetScheduledTasks().Count();
+                return _MaximumQueueItems > 0 && _MaximumQueueItems > scheduledTaskCount;
             }
         }
 
@@ -323,7 +364,7 @@ namespace TPL.SimpleTaskScheduler
 
         protected override void QueueTask(Task task)
         {
-            if (CanAddWorkItem())
+            if (IsOutOfRange())
                 throw new InvalidOperationException(string.Format(TPLConstants.TPL_SCHEDULER_MAX_QUEUE_ITEMS_EX, this._MaximumQueueItems));
 
             var work = new WorkItem(() =>

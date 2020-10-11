@@ -69,7 +69,7 @@ namespace TPL.SimpleTaskSchedulerTest
             //ASSERT
             work.DoWork.Should().NotBeNull();
             work.IsCompleted.Should().BeTrue();
-            work.Task.Result.Should().BeSameAs(expectedRes);
+            work.Result.Should().BeSameAs(expectedRes);
         }
 
 
@@ -165,7 +165,7 @@ namespace TPL.SimpleTaskSchedulerTest
             item.SetResult();
 
             //ASSERT
-            item.Task.Result.Should().BeNull();
+            (item.Task as Task<object>).Result.Should().BeNull();
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
@@ -249,7 +249,7 @@ namespace TPL.SimpleTaskSchedulerTest
             item.OnCompleted(null);
 
             //ASSERT
-            item.Task.Result.Should().BeNull();
+            (item.Task as Task<object>).Result.Should().BeNull();
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
@@ -291,7 +291,7 @@ namespace TPL.SimpleTaskSchedulerTest
             item.GetResult();
 
             //ASSERT
-            item.Task.Result.Should().BeNull();
+            item.Result.Should().BeNull();
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
@@ -350,7 +350,7 @@ namespace TPL.SimpleTaskSchedulerTest
 
             //ASSERT
             work.IsCompleted.Should().BeTrue();
-            work.Task.Result.Should().NotBeNull();
+            (work.Task as Task<object>).Result.Should().NotBeNull();
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]

@@ -20,13 +20,12 @@ namespace TPL.SimpleTaskScheduler
             if (doWork is null) throw new ArgumentNullException(nameof(doWork));
             if (dueTime < 1) throw new ArgumentOutOfRangeException(nameof(dueTime));
 
-            _DoWork = () => { _WorkItemResult = doWork(); };
-            _TaskSource.Task.ConfigureAwait(false);
-            _Disposed = false;
             _WorkItemResult = null;
+            _DoWork = () => { _WorkItemResult = doWork(); };
+            _Disposed = false;
         }
 
-        public new Task<TData> Task => this._TaskSource.Task as Task<TData>;
+        public TData Result => _WorkItemResult as TData;
     }
 
     /// <summary>
