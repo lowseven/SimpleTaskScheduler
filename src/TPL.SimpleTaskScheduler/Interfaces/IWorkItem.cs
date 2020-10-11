@@ -1,15 +1,16 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace TPL.Interfaces
 {
-    public interface IWorkItem<TData> where TData : class
+    public interface IWorkItem<TData> : IWorkItem where TData : class
     {
         /// <summary>
         /// Returns a Task with its result
         /// </summary>
-        Task<TData> Task { get; }
+        new Task<TData> Task { get; }
     }
 
     public interface IWorkItem : IAwaitable<IWorkItem>, IDisposable
@@ -19,9 +20,17 @@ namespace TPL.Interfaces
         /// </summary>
         int Id { get; }
         /// <summary>
-        /// Check if the workItem is runnable and not faulted or canceled
+        /// Checks if a workItem is runnable and not faulted or canceled
         /// </summary>
         bool IsValid { get; }
+        /// <summary>
+        /// Checks if a WorkItem can be started.
+        /// </summary>
+        bool IsRunnable { get; }
+        /// <summary>
+        /// Check if the work item is canceled
+        /// </summary>
+        bool IsCanceled { get; }
         /// <summary>
         /// Returns the task representation of the work
         /// </summary>
@@ -31,19 +40,23 @@ namespace TPL.Interfaces
         /// </summary>
         Action DoWork { get; }
         /// <summary>
-        /// Cancel the work
+        /// Set the work as cancelled
         /// </summary>
         void SetCanceled();
         /// <summary>
         /// Sets the completion and the result of the work.
         /// It can be retrieved by casting the WorkItem.Task to WorkItem.Task<TYPE>
         /// </summary>
-        /// <param name="result">The result of the work</param>
-        void SetCompletion(object result);
+        void SetResult();
         /// <summary>
-        /// Capture and store the exception in the WorkItem.Task.Exception
+        /// Set the workItem as faulted and then Capture 
+        /// the exception in the WorkItem.Task.Exception
         /// </summary>
-        /// <param name="ex"></param>
+        /// <param name="ex">The exception</param>
         void SetException(Exception ex);
+        /// <summary>
+        /// Notify a cancellation request
+        /// </summary>
+        void NotifyCancellation();
     }
 }

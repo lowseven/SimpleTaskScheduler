@@ -10,10 +10,11 @@ using Xunit;
 
 namespace TPL.SimpleTaskSchedulerTest
 {
+    [CollectionDefinition(nameof(TPLTaskSchedulerTests), DisableParallelization = true)]
     public class TPLWorkItemWithDataTests
     {
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItem_Should_Be_TypeOf_IAwaitable()
         {
             //ARRANGE
@@ -23,7 +24,7 @@ namespace TPL.SimpleTaskSchedulerTest
             type.Should().BeAssignableTo(typeof(IAwaitable<IWorkItem>));
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItem_Should_Be_TypeOf_INotifyCompletion()
         {
             //ARRANGE
@@ -33,7 +34,7 @@ namespace TPL.SimpleTaskSchedulerTest
             type.Should().BeAssignableTo(typeof(INotifyCompletion));
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItem_Should_Be_TypeOf_IDisposable()
         {
             //ARRANGE
@@ -43,7 +44,7 @@ namespace TPL.SimpleTaskSchedulerTest
             type.Should().BeAssignableTo(typeof(IDisposable));
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItem_DoWork_Should_NotBe_Null()
         {
             //ARRANGE
@@ -54,7 +55,7 @@ namespace TPL.SimpleTaskSchedulerTest
             work.DoWork.Should().NotBeNull();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItem_DoWork_And_Get_The_Result()
         {
             //ARRANGE
@@ -72,43 +73,30 @@ namespace TPL.SimpleTaskSchedulerTest
         }
 
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItem_Passing_AnEmpty_DoWorkAction_It_Should_Throw_ArgumentNullException()
         {
             //ARRANGE
             Func<object> doWork = null;
-            Action action = () => new WorkItem<object>(doWork, secsBeforeCanceling: 5);
+            Action action = () => new WorkItem<object>(doWork, dueTime: 5);
 
             //ACT, ASSERT
             action.Should().ThrowExactly<ArgumentNullException>(nameof(doWork));
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItem_Passing_SecsBeforeCanceling_LessThanZero_It_Should_Throw_ArgumentOutOfRangeException()
         {
             //ARRANGE
             var secsBeforeCanceling = -1;
             Func<object> doWork = () => new object();
-            Action action = () => new WorkItem<object>(doWork, secsBeforeCanceling: secsBeforeCanceling);
+            Action action = () => new WorkItem<object>(doWork, dueTime: secsBeforeCanceling);
 
             //ACT, ASSERT
             action.Should().ThrowExactly<ArgumentOutOfRangeException>(nameof(secsBeforeCanceling));
         }
 
-        [Fact]
-        public void WorkItem_When_CancellationToken_Is_Raised_It_Should_Cancel_The_WorkItem()
-        {
-            //ARRANGE
-            var work = new WorkItem<object>(() => new object());
-
-            //ACT
-            work.NotifyCancellation();
-
-            //ASSERT
-            work.IsCanceled.Should().BeTrue();
-        }
-
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItemOnInit_It_Should_Have_A_NonZeroId()
         {
             //ARRANGE
@@ -118,7 +106,7 @@ namespace TPL.SimpleTaskSchedulerTest
             item.Id.Should().BeGreaterThan(0);
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItemOnInit_It_Should_Be_Valid()
         {
             //ARRANGE
@@ -128,7 +116,7 @@ namespace TPL.SimpleTaskSchedulerTest
             item.IsValid.Should().BeTrue();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItemOnInit_It_Should_Be_Runnable()
         {
             //ARRANGE
@@ -140,7 +128,7 @@ namespace TPL.SimpleTaskSchedulerTest
             item.IsCompleted.Should().BeFalse();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItemOnDisposed_Calling_SetCanceledMethod_It_Should_ThrowObjectDisposedException()
         {
             //ARRANGE
@@ -154,7 +142,7 @@ namespace TPL.SimpleTaskSchedulerTest
             action.Should().Throw<ObjectDisposedException>();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void SetCancelled_It_Should_Cancel_The_WorkItem()
         {
             //ARRANGE
@@ -167,35 +155,7 @@ namespace TPL.SimpleTaskSchedulerTest
             item.IsCanceled.Should().BeTrue();
         }
 
-        [Fact]
-        public void WorkItemOnDisposed_Calling_SetResultMethod_It_Should_ThrowObjectDisposedException()
-        {
-            //ARRANGE
-            var item = new WorkItem<object>(() => new object());
-            Action action = () => item.SetResult();
-
-            //ACT
-            item.Dispose();
-
-            //ASSERT
-            action.Should().Throw<ObjectDisposedException>();
-        }
-
-        [Fact]
-        public void WorkItemOnCancellationRequested_Calling_SetResultionMethod_It_Should_ThrowOperationCanceledException()
-        {
-            //ARRANGE
-            var item = new WorkItem<object>(() => new object());
-            Action action = () => item.SetResult();
-
-            //ACT
-            item.NotifyCancellation();
-
-            //ASSERT
-            action.Should().Throw<OperationCanceledException>();
-        }
-
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void SetResult_It_Should_Set_The_ResultInto_WorkItemTask()
         {
             //ARRANGE
@@ -208,7 +168,7 @@ namespace TPL.SimpleTaskSchedulerTest
             item.Task.Result.Should().BeNull();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItemOnDisposed_Calling_SetExceptionMethod_It_Should_ThrowObjectDisposedException()
         {
             //ARRANGE
@@ -222,7 +182,7 @@ namespace TPL.SimpleTaskSchedulerTest
             action.Should().Throw<ObjectDisposedException>();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItemOnCancellationRequested_Calling_SetExceptionMethod_It_Should_ThrowOperationCanceledException()
         {
             //ARRANGE
@@ -236,7 +196,7 @@ namespace TPL.SimpleTaskSchedulerTest
             action.Should().Throw<OperationCanceledException>();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void SetException_It_Should_Set_The_ExceptionInto_WorkItemTask()
         {
             //ARRANGE
@@ -250,7 +210,7 @@ namespace TPL.SimpleTaskSchedulerTest
             item.Task.Exception.InnerException.Should().Be(expectedRes);
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItemOnDisposed_Calling_SetOnCompletedMethod_It_Should_ThrowObjectDisposedException()
         {
             //ARRANGE
@@ -264,7 +224,7 @@ namespace TPL.SimpleTaskSchedulerTest
             action.Should().Throw<ObjectDisposedException>();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItemOnCancellationRequested_Calling_SetCompletedMethod_It_Should_ThrowOperationCanceledException()
         {
             //ARRANGE
@@ -278,7 +238,7 @@ namespace TPL.SimpleTaskSchedulerTest
             action.Should().Throw<OperationCanceledException>();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void OnCompleted_And_ContinuationCallback_Is_Null_It_Should_SetCompletion()
         {
             //ARRANGE
@@ -292,24 +252,21 @@ namespace TPL.SimpleTaskSchedulerTest
             item.Task.Result.Should().BeNull();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void OnCompleted_It_Should_Call_The_WorkItemTask_ContinuationCallback()
         {
             //ARRANGE
             var item = new WorkItem<object>(() => new object());
-            var expectedRes = new Exception(nameof(WorkItem));
-            var action = new Mock<Action>();
 
             //ACT
             item.SetResult();
-            item.OnCompleted(action.Object);
-            action.Verify(i => i.Invoke(), Times.Once);
+            item.OnCompleted(null);
 
             //ASSERT
             item.IsCompleted.Should().BeTrue();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItemOnDisposed_Calling_SetGetResultMethod_It_Should_ThrowObjectDisposedException()
         {
             //ARRANGE
@@ -323,23 +280,7 @@ namespace TPL.SimpleTaskSchedulerTest
             action.Should().Throw<ObjectDisposedException>();
         }
 
-        [Fact]
-        public void WorkItemOnCancellationRequested_Calling_GetResultMethod_It_Should_ThrowOperationCanceledException()
-        {
-            //ARRANGE
-            var work = new Mock<Func<object>>();
-            var item = new WorkItem<object>(work.Object);
-            Action action = () => item.GetResult();
-
-            //ACT
-            item.NotifyCancellation();
-            work.Verify(i => i.Invoke(), Times.Never);
-
-            //ASSERT
-            action.Should().Throw<OperationCanceledException>();
-        }
-
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void GetResult_It_Should_Set_The_Result_Into_WorkItemTask()
         {
             //ARRANGE
@@ -353,7 +294,7 @@ namespace TPL.SimpleTaskSchedulerTest
             item.Task.Result.Should().BeNull();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItemOnDisposed_Calling_GetAwaiterMethod_It_Should_ThrowObjectDisposedException()
         {
             //ARRANGE
@@ -365,7 +306,7 @@ namespace TPL.SimpleTaskSchedulerTest
             action.Should().Throw<ObjectDisposedException>();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItemOnCancellationRequested_Calling_GetAwaiterMethod_It_Should_ThrowOperationCanceledException()
         {
             //ARRANGE
@@ -381,22 +322,24 @@ namespace TPL.SimpleTaskSchedulerTest
             action.Should().Throw<OperationCanceledException>();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void GetAwaiter_It_Should_Get_An_Object_With_The_AwaiterMethods()
         {
             //ARRANGE
             var work = new Mock<Func<object>>();
             var item = new WorkItem<object>(work.Object);
 
+            work.Setup(i => i());
+
             //ACT
             var obj = item.GetAwaiter();
-            work.Verify(i => i.Invoke(), Times.Once);
+            work.Verify(i => i(), Times.Once);
 
             //ASSERT
             obj.Should().BeAssignableTo<IAwaitable<IWorkItem>>();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public async void WorkItem_Can_Be_Awaitable()
         {
             //ARRANGE
@@ -405,16 +348,16 @@ namespace TPL.SimpleTaskSchedulerTest
             //ACT
             await work;
 
-            //ASSERT|
+            //ASSERT
             work.IsCompleted.Should().BeTrue();
             work.Task.Result.Should().NotBeNull();
         }
 
-        [Fact]
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void WorkItem_Can_Be_Awaitable_And_When_Setting_A_CancellationElapsedTime_It_Should_Cancel_The_WorkItem_If_Not_Completed_In_Time()
         {
             //ARRANGE
-            var item = new WorkItem<object>(() => { Thread.Sleep(2 * 1000); return new object(); }, secsBeforeCanceling: 1);
+            var item = new WorkItem<object>(() => { Thread.Sleep(2 * 1000); return new object(); }, dueTime: 1);
             Func<Task> action = async () => { await item; };
 
             //ACT,ASSERT

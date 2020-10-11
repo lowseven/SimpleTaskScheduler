@@ -1,10 +1,5 @@
 ﻿using Serilog;
-using Serilog.Core;
 using Serilog.Events;
-using Serilog.Sinks.SystemConsole.Themes;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace TPL.SimpleTaskScheduler
 {
@@ -20,7 +15,6 @@ namespace TPL.SimpleTaskScheduler
 #if DEBUG
                     .WriteTo.Debug(LogEventLevel.Verbose)
 #endif
-                    //.WriteTo.RollingFile(LogEventLevel.Debug, TPLConstants.TPL_)
                     .CreateLogger();
             }
 

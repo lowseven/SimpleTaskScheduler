@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using TPL.Interfaces;
@@ -11,24 +10,20 @@ namespace TPL.SimpleTaskScheduler
     /// by default the canceling time is 5 seconds
     /// </summary>
     /// <typeparam name="TData">The dataType of the work result</typeparam>
-    //TODO:  implements a continuation callback using these interfaces
-    //       TaskAwaiter : ICriticalNotifyCompletion, INotifyCompletion
-    //https://docs.microsoft.com/en-us/dotnet/api/system.runtime.compilerservices.taskawaiter?view=netcore-3.1
     public class WorkItem<TData> : WorkItem, IWorkItem<TData> where TData : class
     {
         public WorkItem(
             Func<TData> doWork
             , TaskCreationOptions options = TaskCreationOptions.None
-            , int secsBeforeCanceling = 5) : base(options, secsBeforeCanceling)
+            , int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS) : base(options, dueTime)
         {
             if (doWork is null) throw new ArgumentNullException(nameof(doWork));
-            if (secsBeforeCanceling <= 0) throw new ArgumentNullException(nameof(secsBeforeCanceling));
+            if (dueTime < 1) throw new ArgumentOutOfRangeException(nameof(dueTime));
 
-            _DoWork = () => { SetCompletion(doWork); };
-            _Disposed = false;
+            _DoWork = () => { _WorkItemResult = doWork(); };
             _TaskSource.Task.ConfigureAwait(false);
-
-            _CancellationSource.Token.Register(() => SetCanceled(), false);
+            _Disposed = false;
+            _WorkItemResult = null;
         }
 
         public new Task<TData> Task => this._TaskSource.Task as Task<TData>;
@@ -41,90 +36,172 @@ namespace TPL.SimpleTaskScheduler
     public class WorkItem : IWorkItem
     {
         public int Id { get => _TaskSource.Task.Id; }
-        public bool IsValid { get => _CancellationSource.IsCancellationRequested is false || _TaskSource.Task.IsCanceled is false || _TaskSource.Task.IsFaulted is false; }
+        public bool IsValid
+        {
+            get => _Disposed is false
+                && _CancellationSource.IsCancellationRequested is false
+                && _TaskSource.Task.IsCanceled is false
+                && _TaskSource.Task.IsFaulted is false
+                && IsCompleted is false;
+        }
 
+        public bool IsRunnable
+        {
+            get =>
+                IsValid
+                && _TaskSource.Task.IsCompleted is false
+                && _TaskSource.Task.IsCompletedSuccessfully is false;
+        }
+
+        public bool IsCompleted =>
+            IsCanceled is false
+            && _TaskSource.Task.IsCompletedSuccessfully
+            && _TaskSource.Task.IsCompleted;
+
+        public bool IsCanceled => _TaskSource.Task.IsCanceled && _CancellationSource.IsCancellationRequested;
         public Task Task => _TaskSource.Task;
         public Action DoWork => _DoWork;
-        public bool IsCompleted => IsValid && _TaskSource.Task.IsCompletedSuccessfully;
 
-        protected Action _DoWork;
         protected bool _Disposed;
+        protected object _WorkItemResult;
+        protected Action _DoWork;
         protected readonly int _DueTime;
         protected readonly CancellationTokenSource _CancellationSource;
         protected readonly TaskCompletionSource<object> _TaskSource;
 
         internal WorkItem(
              TaskCreationOptions options = TaskCreationOptions.None
-           , int secsBeforeCanceling = 5)
+           , int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS)
         {
-            if (secsBeforeCanceling <= 0) throw new ArgumentNullException(nameof(secsBeforeCanceling));
+            if (dueTime <= 0) throw new ArgumentOutOfRangeException(nameof(dueTime));
 
-            _DueTime = secsBeforeCanceling * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI;
+            _DueTime = dueTime * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI;
             _CancellationSource = new CancellationTokenSource(_DueTime);
             _TaskSource = new TaskCompletionSource<object>(options);
-            _Disposed = false;
-
-            _CancellationSource.Token.Register(() => SetCanceled(), false);
             _TaskSource.Task.ConfigureAwait(false);
+            _Disposed = false;
+            _CancellationSource.Token.Register(() =>
+            {
+                if (_TaskSource.Task.IsFaulted
+                    || _TaskSource.Task.IsCompleted
+                    || _TaskSource.Task.IsCanceled) return;
+
+                _TaskSource.SetCanceled();
+            });
         }
 
         public WorkItem(
             Action doWork
             , TaskCreationOptions options = TaskCreationOptions.None
-            , int secsBeforeCanceling = 5)
+            , int dueTime = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS)
         {
             if (doWork is null) throw new ArgumentNullException(nameof(doWork));
-            if (secsBeforeCanceling <= 0) throw new ArgumentNullException(nameof(secsBeforeCanceling));
+            if (dueTime < 1) throw new ArgumentOutOfRangeException(nameof(dueTime));
 
-            _DueTime = secsBeforeCanceling * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI;
-            _CancellationSource = new CancellationTokenSource(_DueTime);
+            _DueTime = dueTime * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI;
+            _CancellationSource = new CancellationTokenSource();
             _TaskSource = new TaskCompletionSource<object>(options);
             _DoWork = doWork;
             _Disposed = false;
-
-
-            _CancellationSource.Token.Register(() => SetCanceled(), false);
+            _CancellationSource.CancelAfter(_DueTime);
             _TaskSource.Task.ConfigureAwait(false);
+            _CancellationSource.Token.Register(() =>
+            {
+                if (_TaskSource.Task.IsFaulted
+                    || _TaskSource.Task.IsCompleted
+                    || _TaskSource.Task.IsCanceled) return;
+
+                _TaskSource.SetCanceled();
+            });
         }
 
         public void SetCanceled()
         {
-            _TaskSource.TrySetCanceled();
+            if (_Disposed) throw new ObjectDisposedException(nameof(WorkItem));
+            if (this.IsCompleted) throw new InvalidOperationException("The Work Item is already completed");
+
+            NotifyCancellation();
         }
 
-        public void SetCompletion(object result)
+        public void SetResult()
         {
-            _TaskSource.TrySetResult(result);
+            _TaskSource.SetResult(this._WorkItemResult);
         }
 
         public void SetException(Exception ex)
         {
-            _TaskSource.TrySetException(ex);
+            ThrowIfInvalid();
+
+            _TaskSource.SetException(ex);
         }
 
-        public virtual void Dispose(bool disposing)
+        public void OnCompleted(Action continuation)
+        {
+            ThrowIfInvalid();
+
+            if (continuation is null) return;
+
+            _TaskSource.Task
+                .ContinueWith((t) => continuation())
+                .Wait();
+        }
+
+        public void GetResult()
+        {
+            ThrowIfInvalid();
+        }
+
+        public IWorkItem GetAwaiter()
+        {
+            ThrowIfInvalid();
+
+            _DoWork();
+
+            if (IsValid)
+            {
+                _TaskSource.SetResult(_WorkItemResult);
+            }
+            else
+            {
+                _TaskSource.SetCanceled();
+            }
+
+            return this;
+        }
+
+        protected virtual void ThrowIfInvalid()
+        {
+            if (_Disposed) throw new ObjectDisposedException(nameof(WorkItem));
+
+            _CancellationSource.Token.ThrowIfCancellationRequested();
+        }
+
+        public void Dispose() => Dispose(true);
+        private void Dispose(bool disposing)
         {
             if (_Disposed) return;
 
             if (disposing)
             {
+                if (_TaskSource.Task.IsCompleted is false
+                    || _TaskSource.Task.IsFaulted is false
+                    || _TaskSource.Task.IsCanceled is false)
+                {
+                    _TaskSource.SetCanceled();
+                }
+
                 _CancellationSource.Dispose();
                 _TaskSource.Task.Dispose();
+                _Disposed = true;
             }
         }
 
-        public void OnCompleted(Action continuation)
+        public void NotifyCancellation()
         {
-            SetCompletion(null);
-            _TaskSource.Task.ContinueWith((t) => continuation());
-        }
+            if (_Disposed) throw new ObjectDisposedException(nameof(WorkItem));
+            if (_CancellationSource.Token.CanBeCanceled is false) return;
 
-        public void GetResult()
-        {
-            _DoWork();
+            _CancellationSource.Cancel();
         }
-
-        public IWorkItem GetAwaiter() => this;
-        public void Dispose() => Dispose(true);
     }
 }

@@ -1,12 +1,17 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <Platforms>AnyCPU;x64</Platforms>
+    <LangVersion>8</LangVersion>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="BaseTPLTaskScheduler.cs" />
-  </ItemGroup>
+  <PropertyGroup>
+    <OutputPath>..\..\build</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <AssemblyName>TPL.SimpleTaskScheduler</AssemblyName>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Serilog" Version="2.10.0" />

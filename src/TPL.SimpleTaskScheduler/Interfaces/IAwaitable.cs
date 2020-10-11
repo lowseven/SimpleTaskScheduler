@@ -13,7 +13,7 @@ namespace TPL.Interfaces
         /// <returns></returns>
         TAwaiter GetAwaiter();
         /// <summary>
-        /// Sets the complition of the awaitable duty
+        /// Sets the completion of the awaitable duty
         /// </summary>
         void GetResult();
         /// <summary>
