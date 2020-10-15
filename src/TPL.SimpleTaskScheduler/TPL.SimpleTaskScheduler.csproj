@@ -11,14 +11,15 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <AssemblyName>TPL.SimpleTaskScheduler</AssemblyName>
-    <Version>1.0.2</Version>
+    <Version>1.0.4</Version>
     <Authors>Railyn Lopez Morillo</Authors>
     <Company />
     <Description>Provides an easy way to enqueue tasks thought parallelization</Description>
     <PackageProjectUrl>https://github.com/lowseven/SimpleTaskScheduler</PackageProjectUrl>
     <RepositoryUrl>https://github.com/lowseven/SimpleTaskScheduler</RepositoryUrl>
     <RepositoryType>Github</RepositoryType>
-    <PackageTags>Task;Tasks;Scheduler:WrokItem;TPL;</PackageTags>
+    <PackageTags>Task;Tasks;Scheduler;WorkItem;TPL;</PackageTags>
+    <AssemblyVersion>1.0.4.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>

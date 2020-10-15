@@ -120,13 +120,11 @@ namespace TPL.SimpleTaskSchedulerTest
         public void WorkItemOnInit_When_Setting_A_CancellationElapsedTime_It_Should_Cancel_The_WorkItem_If_Not_Completed_In_Time()
         {
             //ARRANGE
-            var item = new WorkItem(() => { /*do nothing*/ }, dueTime: 1);
+            var item = new WorkItem(() => { Thread.Sleep(3 * 1000); }, dueTime: 1);
+            Action action = () => Task.WaitAll(item.Task);
 
-            //ACT
-            Thread.Sleep(3 * 1000);
-            item.DoWork();
-
-            //ASSERT
+            //ACT, ASSERT
+            action.Should().Throw<TaskCanceledException>();
             item.IsCanceled.Should().BeTrue();
             item.IsRunnable.Should().BeFalse();
             item.IsCompleted.Should().BeFalse();
@@ -193,7 +191,6 @@ namespace TPL.SimpleTaskSchedulerTest
 
             //ACT
             item.SetResult();
-            Thread.Sleep(2 * 1000);
 
             //ASSERT
             (item.Task as Task<object>).Result.Should().BeNull();
@@ -366,33 +363,6 @@ namespace TPL.SimpleTaskSchedulerTest
 
             //ASSERT
             obj.Should().BeAssignableTo<IAwaitable<IWorkItem>>();
-        }
-
-        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public async void WorkItem_Can_Be_Awaitable()
-        {
-            //ARRANGE
-            var work = new WorkItem(() => { /*do nothing*/ });
-
-            //ACT
-            await work;
-
-            //ASSERT|
-            work.IsCompleted.Should().BeTrue();
-        }
-
-        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void WorkItem_Can_Be_Awaitable_And_When_Setting_A_CancellationElapsedTime_It_Should_Cancel_The_WorkItem_If_Not_Completed_In_Time()
-        {
-            //ARRANGE
-            var item = new WorkItem(() => { Thread.Sleep(4 * 1000); }, dueTime: 1);
-            Func<Task> a = async () => await item;
-
-            //ACT,ASSERT
-            a.Should().ThrowAsync<OperationCanceledException>();
-            item.IsCanceled.Should().BeTrue();
-            item.IsRunnable.Should().BeFalse();
-            item.IsCompleted.Should().BeFalse();
         }
     }
 }

@@ -34,14 +34,15 @@ namespace TPL.SimpleTaskSchedulerTest
             var counter = 0;
 
             //ACT
-            Task.Factory.StartNew(
+            var task = Task.Factory.StartNew(
                 () => { counter++; }
                 , CancellationToken.None
                 , TaskCreationOptions.None
                 , sch);
 
+            Task.WaitAll(task);
+
             //ASSERT
-            Thread.Sleep(2 * 1000);
             counter.Should().BeGreaterThan(0);
         }
 
@@ -118,8 +119,10 @@ namespace TPL.SimpleTaskSchedulerTest
 
             sch.EnqueueWork(items);
 
-            //ACT, ASSERT
-            Thread.Sleep(2 * 1000);
+            //ACT
+            Task.WaitAll(items.Select(i => i.Task).ToArray());
+
+            //ASSERT
             counter.Should().Be(items.Count());
         }
 
@@ -134,28 +137,25 @@ namespace TPL.SimpleTaskSchedulerTest
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void AllTasksCompleted_If_Queue_Empty_It_Should_TrulyValue()
-        {
-            //ACT,ASSERT
-            sch.AllTasksCompleted.Should().BeTrue();
-        }
-
-        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void AllTasksCompleted_With_An_Empty_Queue_It_Should_Return_TrulyValue()
         {
             //ARRANGE
+            var count = 0;
             var items = new WorkItem[]
             {
-                  new WorkItem(() => { Thread.Sleep(2*1000); })
-                , new WorkItem(() => { Thread.Sleep(2*1000); })
-                , new WorkItem(() => { Thread.Sleep(2*1000); })
-                , new WorkItem(() => { Thread.Sleep(2*1000); })
+                  new WorkItem(() => { count++; })
+                , new WorkItem(() => { count++; })
+                , new WorkItem(() => { count++; })
+                , new WorkItem(() => { count++; })
             };
 
             sch.EnqueueWork(items);
 
-            //ACT,ASSERT
-            sch.AllTasksCompleted.Should().BeFalse();
+            //ACT
+            Task.WaitAll(items.Select(i => i.Task).ToArray());
+
+            //ASSERT
+            sch.AllTasksCompleted.Should().BeTrue();
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
@@ -240,8 +240,10 @@ namespace TPL.SimpleTaskSchedulerTest
             var updateMe = string.Empty;
             sch.EnqueueWork(() => { updateMe = Guid.NewGuid().ToString(); });
 
-            //ACT, ASSERT
+            //ACT
             Thread.Sleep(2 * 1000);
+
+            //ASSERT
             updateMe.Should().NotBeNullOrEmpty();
         }
 
@@ -254,18 +256,6 @@ namespace TPL.SimpleTaskSchedulerTest
 
             //ACT,ASSERT
             action.Should().Throw<ArgumentNullException>();
-        }
-
-        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void EnqueueWorkWithDoWorkCallback_It_Should_Call_The_DoWorkCallback()
-        {
-            //ARRANGE
-            var counter = 0;
-            sch.EnqueueWork(() => { counter++; }, () => { counter++; });
-
-            //ACT, ASSERT
-            Thread.Sleep(2 * 1000);
-            counter.Should().BeGreaterOrEqualTo(2);
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]

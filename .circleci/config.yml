@@ -5,38 +5,38 @@ orbs:
 
 jobs:
   test:
-    description: Setup and run application tests
+    description: Setup and running application tests
     executor:
       name: windows/default
     steps:
       - checkout
       - restore_cache:
           keys:
-            - dotnet-packages-v1-{{ checksum "SimpleCalc/SimpleCalc.csproj" }}
+            - dotnet-packages-v1.0.4-{{ checksum "src/TPL.SimpleTaskScheduler.csproj" }}
       - run:
-          name: "Install project dependencies"
+          name: "Restoring dependencies"
           command: dotnet.exe restore
       - save_cache:
           paths:
             - C:\Users\circleci\.nuget\packages
-          key: dotnet-packages-v1-{{ checksum "SimpleCalc/SimpleCalc.csproj" }}
+          key: dotnet-packages-v1.0.4-{{ checksum "src/TPL.SimpleTaskScheduler.csproj" }}
       - run:
-          name: "Run Application Tests"
-          command: dotnet.exe test -v n --results-directory:test_coverage --collect:"Code Coverage"
+          name: "Running Tests"
+          command: dotnet.exe test -v n --results-directory:test_coverage --collect:"XPlat Code Coverage" --no-restore --nologo
       - run:
           name: "Print Working Directory"
           command: pwd
       - store_artifacts:
           path: C:\Users\circleci\project\test_coverage
   build:
-    description: Build application with Release configuration
+    description: Build with Release configuration
     executor:
       name: windows/default
     steps:
       - checkout
       - run:
-          name: "Build Application according to some given configuration"
-          command: dotnet.exe build --configuration Release
+          name: "Build Application"
+          command: dotnet.exe build --configuration Release -v n --no-restore
 workflows:
   test_and_build:
     jobs:

@@ -1,9 +1,10 @@
 # SimpleTaskScheduler
 
-![Nuget](https://img.shields.io/nuget/v/TPLSimpleTaskScheduler)
+[![Nuget](https://img.shields.io/nuget/v/TPL.SimpleTaskScheduler?url=https://www.nuget.org/packages/TPL.SimpleTaskScheduler)](https://www.nuget.org/packages/TPL.SimpleTaskScheduler)
 ![codecov](https://img.shields.io/codecov/c/gh/lowseven/SimpleTaskScheduler?style=flat) ![license: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=flat)
 
 [__Buy me a coffee! :coffee:__](https://www.buymeacoffee.com/lowseven)
+
 
 
 ## Intro
@@ -13,7 +14,7 @@ The main purpose behind this simple solution is to have some of the new task man
 
 ## Dependencies
 
-- [Serilog]() for logging.
+- [Serilog](https://github.com/serilog/serilog) for logging.
 - [Moq](https://github.com/moq/moq) and [xUnit](https://github.com/xunit/xunit) for the test suite
 - [FluentAssertion](https://github.com/fluentassertions/fluentassertions) for the assertions
 

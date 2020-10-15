@@ -130,8 +130,10 @@ namespace TPL.SimpleTaskSchedulerTest
 
             sch.EnqueueWork(items);
 
-            //ACT, //ASSERT
-            Thread.Sleep(2 * 1000);
+            //ACT
+            Task.WaitAll(items.Select(i => i.Task).ToArray());
+
+            //ASSERT
             items.All(i => expectedValue.Contains(i.Result)).Should().BeTrue();
         }
 
@@ -143,13 +145,6 @@ namespace TPL.SimpleTaskSchedulerTest
 
             //ASSERT
             res.Should().BeEmpty();
-        }
-
-        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void AllTasksCompleted_If_Queue_Empty_It_Should_TrulyValue()
-        {
-            //ACT,ASSERT
-            sch.AllTasksCompleted.Should().BeTrue();
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
@@ -254,23 +249,6 @@ namespace TPL.SimpleTaskSchedulerTest
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void EnqueueWorkWithCallback_It_Should_Get_The_Result_In_The_OnDoneCallback_Argument()
-        {
-            //ARRANGE
-            var exRes = Guid.NewGuid().ToString();
-            var value = string.Empty;
-            var onDoneMock = new Mock<Action<string>>();
-            Func<string> doWork = () => exRes;
-
-            //ACT
-            sch.EnqueueWork(doWork, (res) => value = res);
-            Thread.Sleep(2 * 1000);
-
-            //ASSERT
-            value.Should().Be(exRes);
-        }
-
-        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void EnqueueWorkWithCallback_When_DueTime_Is_LowerThanZero_IsNull_It_Should_Throw_ArgumentOutOfRangeException()
         {
             //ARRANGE
@@ -305,7 +283,7 @@ namespace TPL.SimpleTaskSchedulerTest
 
             //ACT
             sch.EnqueueWork(work);
-            Thread.Sleep(2 * 1000);
+            Task.WaitAll(work.Task);
 
             //ASSERT
             res.Should().Be(exRes);
