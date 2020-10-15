@@ -11,7 +11,6 @@ namespace TPL.SimpleTaskScheduler
             if (_Logger is null)
             {
                 _Logger = new LoggerConfiguration()
-                    .WriteTo.Console(LogEventLevel.Debug)
 #if DEBUG
                     .WriteTo.Debug(LogEventLevel.Verbose)
 #endif

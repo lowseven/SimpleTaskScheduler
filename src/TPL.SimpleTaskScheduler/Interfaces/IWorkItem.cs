@@ -11,6 +11,15 @@ namespace TPL.Interfaces
         /// Returns the result with its result
         /// </summary>
         TData Result { get; }
+        /// <summary>
+        /// Sets the completion of the awaitable duty
+        /// </summary>
+        new TData GetResult();
+        /// <summary>
+        /// Returns the awaitable object intance [this]
+        /// </summary>
+        /// <returns></returns>
+        new IWorkItem<TData> GetAwaiter();
     }
 
     public interface IWorkItem : IAwaitable<IWorkItem>, IDisposable

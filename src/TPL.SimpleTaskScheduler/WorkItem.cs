@@ -25,6 +25,20 @@ namespace TPL.SimpleTaskScheduler
             _Disposed = false;
         }
 
+        public new TData GetResult()
+        {
+            ThrowIfInvalid();
+
+            return this._WorkItemResult as TData;
+        }
+
+        public new IWorkItem<TData> GetAwaiter()
+        {
+            base.GetAwaiter();
+
+            return this;
+        }
+
         public TData Result => _WorkItemResult as TData;
     }
 
@@ -48,13 +62,11 @@ namespace TPL.SimpleTaskScheduler
         {
             get =>
                 IsValid
-                && _TaskSource.Task.IsCompleted is false
-                && _TaskSource.Task.IsCompletedSuccessfully is false;
+                && _TaskSource.Task.IsCompleted is false;
         }
 
         public bool IsCompleted =>
             IsCanceled is false
-            && _TaskSource.Task.IsCompletedSuccessfully
             && _TaskSource.Task.IsCompleted;
 
         public bool IsCanceled => _TaskSource.Task.IsCanceled && _CancellationSource.IsCancellationRequested;

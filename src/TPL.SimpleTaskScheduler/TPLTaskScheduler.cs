@@ -420,7 +420,6 @@ namespace TPL.SimpleTaskScheduler
                 && task.IsCanceled is false
                 && task.IsCompleted is false
                 && task.IsFaulted is false
-                && task.IsCompletedSuccessfully is false
                 && task.Exception is null;
 
         protected override IEnumerable<Task> GetScheduledTasks()

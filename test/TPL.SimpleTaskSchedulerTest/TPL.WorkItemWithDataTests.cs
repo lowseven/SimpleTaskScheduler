@@ -15,7 +15,7 @@ namespace TPL.SimpleTaskSchedulerTest
     {
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void WorkItem_Should_Be_TypeOf_IAwaitable()
+        public void WorkItem_Should_Be_TypeOf_IAwaitableAsync()
         {
             //ARRANGE
             var type = typeof(IWorkItem<object>);
@@ -141,6 +141,20 @@ namespace TPL.SimpleTaskSchedulerTest
             //ASSERT
             action.Should().Throw<ObjectDisposedException>();
         }
+
+        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
+        public async void WorkItemOnAwaitable_It_Should_Return_The_Result()
+        {
+            //ARRANGE
+            var item = new WorkItem<string>(() => Guid.NewGuid().ToString());
+
+            //ACT
+            var res = await item;
+
+            //ASSERT
+            res.Should().Be(item.Result);
+        }
+
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void SetCancelled_It_Should_Cancel_The_WorkItem()
@@ -357,7 +371,7 @@ namespace TPL.SimpleTaskSchedulerTest
         public void WorkItem_Can_Be_Awaitable_And_When_Setting_A_CancellationElapsedTime_It_Should_Cancel_The_WorkItem_If_Not_Completed_In_Time()
         {
             //ARRANGE
-            var item = new WorkItem<object>(() => { Thread.Sleep(2 * 1000); return new object(); }, dueTime: 1);
+            var item = new WorkItem<object>(() => { Thread.Sleep(4 * 1000); return new object(); }, dueTime: 1);
             Func<Task> action = async () => { await item; };
 
             //ACT,ASSERT
