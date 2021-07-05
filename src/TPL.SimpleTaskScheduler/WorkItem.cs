@@ -10,7 +10,7 @@ namespace TPL.SimpleTaskScheduler
     /// by default the canceling time is 5 seconds
     /// </summary>
     /// <typeparam name="TData">The dataType of the work result</typeparam>
-    public class WorkItem<TData> : WorkItem, IWorkItem<TData> where TData : class
+    public class WorkItem<TData> : WorkItem, IWorkItem<TData>
     {
         public WorkItem(
             Func<TData> doWork
@@ -29,7 +29,7 @@ namespace TPL.SimpleTaskScheduler
         {
             ThrowIfInvalid();
 
-            return this._WorkItemResult as TData;
+            return (TData) this._WorkItemResult ;
         }
 
         public new IWorkItem<TData> GetAwaiter()
@@ -39,7 +39,7 @@ namespace TPL.SimpleTaskScheduler
             return this;
         }
 
-        public TData Result => _WorkItemResult as TData;
+        public TData Result => (TData)_WorkItemResult;
     }
 
     /// <summary>

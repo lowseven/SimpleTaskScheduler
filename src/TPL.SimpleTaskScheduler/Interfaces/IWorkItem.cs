@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace TPL.Interfaces
 {
-    public interface IWorkItem<TData> : IWorkItem where TData : class
+    public interface IWorkItem<TData> : IWorkItem 
     {
         /// <summary>
         /// Returns the result with its result

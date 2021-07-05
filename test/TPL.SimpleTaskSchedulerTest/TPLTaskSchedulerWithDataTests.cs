@@ -222,17 +222,6 @@ namespace TPL.SimpleTaskSchedulerTest
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void EnqueueWork_When_DueTime_Is_LowerThanZero_IsNull_It_Should_Throw_ArgumentOutOfRangeException()
-        {
-            //ARRANGE
-            Func<string> doWork = () => string.Empty;
-            Action action = () => sch.EnqueueWork(doWork, dueTime: -1);
-
-            //ACT,ASSERT
-            action.Should().Throw<ArgumentOutOfRangeException>();
-        }
-
-        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void EnqueueWorkWithCallback_When_WorkCallback_IsNull_It_Should_Throw_ArgumentNullException()
         {
             //ARRANGE
@@ -246,20 +235,6 @@ namespace TPL.SimpleTaskSchedulerTest
                 It.Is<string>(m => m.Equals(exRes)))
             , Times.Never);
             action.Should().Throw<ArgumentNullException>();
-        }
-
-        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void EnqueueWorkWithCallback_When_DueTime_Is_LowerThanZero_IsNull_It_Should_Throw_ArgumentOutOfRangeException()
-        {
-            //ARRANGE
-            var exRes = Guid.NewGuid().ToString();
-            var value = string.Empty;
-            var onDoneMock = new Mock<Action<string>>();
-            Func<string> doWork = () => exRes;
-            Action action = () => sch.EnqueueWork(doWork, (res) => value = res, dueTime: -1);
-
-            //ACT, ASSERT
-            action.Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
@@ -352,16 +327,6 @@ namespace TPL.SimpleTaskSchedulerTest
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void TryExecuteItNow_When_DueTime_IsLessOrEqualToZero_It_Should_Throw_ArgumentOutOfRangeException()
-        {
-            //ARRANGE
-            Action action = () => sch.TryExecuteItNow(() => string.Empty, dueTime: 0);
-
-            //ACT,ASSERT
-            action.Should().Throw<ArgumentOutOfRangeException>();
-        }
-
-        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
         public void TryExecuteItNow_When_TaskSchedulerDisposed_It_Should_Throw_ObjectDisposedException()
         {
             //ARRANGE
@@ -407,17 +372,6 @@ namespace TPL.SimpleTaskSchedulerTest
 
             //ASSERT
             value.Should().Be(exRes);
-        }
-
-        [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]
-        public void TryExecuteItNowWithDoWorkCallback_When_DueTime_IsLessOrEqualToZero_It_Should_Throw_ArgumentOutOfRangeException()
-        {
-            //ARRANGE
-
-            Action action = () => sch.TryExecuteItNow(() => string.Empty, (r) => { /* do nothing */ }, dueTime: 0);
-
-            //ACT,ASSERT
-            action.Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [Fact(Timeout = TPLConstants.TPL_SCHEDULER_MIN_WAIT_SECONDS * TPLConstants.TPL_SCHEDULER_SECONDS_MULTI)]

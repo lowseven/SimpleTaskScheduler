@@ -11,20 +11,21 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <AssemblyName>TPL.SimpleTaskScheduler</AssemblyName>
-    <Version>1.0.4</Version>
+    <Version>1.0.8</Version>
     <Authors>Railyn Lopez Morillo</Authors>
     <Company />
-    <Description>Provides an easy way to enqueue tasks thought parallelization</Description>
+    <Description>Provides an easy way to enqueue tasks through parallelization</Description>
     <PackageProjectUrl>https://github.com/lowseven/SimpleTaskScheduler</PackageProjectUrl>
     <RepositoryUrl>https://github.com/lowseven/SimpleTaskScheduler</RepositoryUrl>
+    <license>https://opensource.org/licenses/MIT</license>
     <RepositoryType>Github</RepositoryType>
     <PackageTags>Task;Tasks;Scheduler;WorkItem;TPL;</PackageTags>
-    <AssemblyVersion>1.0.4.0</AssemblyVersion>
+    <AssemblyVersion>1.0.8.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Serilog" Version="2.10.0" />
-    <PackageReference Include="Serilog.Sinks.Debug" Version="1.0.1" />
+    <PackageReference Include="Serilog.Sinks.Debug" Version="2.0.0" />
   </ItemGroup>
 
 </Project>

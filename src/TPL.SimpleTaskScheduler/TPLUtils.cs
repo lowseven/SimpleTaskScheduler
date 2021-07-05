@@ -13,6 +13,8 @@ namespace TPL.SimpleTaskScheduler
                 _Logger = new LoggerConfiguration()
 #if DEBUG
                     .WriteTo.Debug(LogEventLevel.Verbose)
+#else
+                    .WriteTo.Debug(LogEventLevel.Information)
 #endif
                     .CreateLogger();
             }
